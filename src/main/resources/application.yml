@@ -1,0 +1,32 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: restock-web-service
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017/restock
+  jackson:
+    default-property-inclusion: non_null
+
+mqtt:
+  enabled: false
+  broker-url: tcp://localhost:1883
+  client-id: restock-web-service
+  username: ""
+  password: ""
+  topics:
+    device-readings: restock/devices/+/readings
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    tags-sorter: alpha
+    operations-sorter: alpha
+
+logging:
+  level:
+    com.restock: DEBUG
