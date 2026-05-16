@@ -1,21 +1,21 @@
 server:
-  port: 8080
+  port: ${PORT:8080}
 
 spring:
   application:
     name: restock-web-service
   data:
     mongodb:
-      uri: mongodb://localhost:27017/restock
+      uri: ${SPRING_DATA_MONGODB_URI:mongodb://localhost:27017/restock}
   jackson:
     default-property-inclusion: non_null
 
 mqtt:
-  enabled: false
-  broker-url: tcp://localhost:1883
+  enabled: ${MQTT_ENABLED:false}
+  broker-url: ${MQTT_BROKER_URL:tcp://localhost:1883}
   client-id: restock-web-service
-  username: ""
-  password: ""
+  username: ${MQTT_USERNAME:""}
+  password: ${MQTT_PASSWORD:""}
   topics:
     device-readings: restock/devices/+/readings
 
