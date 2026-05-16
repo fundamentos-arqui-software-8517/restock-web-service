@@ -26,6 +26,11 @@ springdoc:
     path: /swagger-ui.html
     tags-sorter: alpha
     operations-sorter: alpha
+  servers:
+    - url: https://restock-web-service.onrender.com
+      description: Producción (Render)
+    - url: http://localhost:8080
+      description: Local Development
 
 logging:
   level:
