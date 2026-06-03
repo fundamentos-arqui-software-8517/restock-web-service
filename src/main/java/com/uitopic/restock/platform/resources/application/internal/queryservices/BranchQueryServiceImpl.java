@@ -18,11 +18,12 @@ import java.util.Optional;
  */
 @Slf4j
 @Service
-@Transactional(readOnly = true)
 public class BranchQueryServiceImpl implements BranchQueryService {
 
+    // Repository for accessing branch data
     private final BranchRepository branchRepository;
 
+    // Constructor injection of the branch repository
     public BranchQueryServiceImpl(BranchRepository branchRepository) {
         this.branchRepository = branchRepository;
     }
@@ -46,7 +47,6 @@ public class BranchQueryServiceImpl implements BranchQueryService {
     @Override
     public Optional<Branch> handle(GetBranchByIdQuery query) {
         log.debug("Querying branch by id='{}'", query.branchId());
-
         return branchRepository.findById(query.branchId());
     }
 
@@ -59,12 +59,8 @@ public class BranchQueryServiceImpl implements BranchQueryService {
     @Override
     public List<Branch> handle(GetBranchesByAccountIdQuery query) {
         log.debug("Querying branches by accountId='{}'", query.accountId());
-
         var results = branchRepository.findByAccountId(query.accountId());
-
         log.debug("Found {} branches for accountId='{}'", results.size(), query.accountId());
-
         return results;
     }
-
 }
