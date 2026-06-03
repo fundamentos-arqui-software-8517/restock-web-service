@@ -19,11 +19,12 @@ import java.util.Optional;
  */
 @Slf4j
 @Service
-@Transactional(readOnly = true)
 public class ProductQueryServiceImpl implements ProductQueryService {
 
+    // Domain port for accessing Product data
     private final ProductRepository productRepository;
 
+    // Constructor injection of the ProductRepository domain port
     public ProductQueryServiceImpl(ProductRepository productRepository) {
         this.productRepository = productRepository;
     }
