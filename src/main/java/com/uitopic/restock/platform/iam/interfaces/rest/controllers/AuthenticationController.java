@@ -97,6 +97,11 @@ public class AuthenticationController {
                 .body(UserResourceFromEntityAssembler.toResourceFromEntity(user));
     }
 
+    @Operation(summary = "Validate current access token")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "204", description = "Token is valid"),
+            @ApiResponse(responseCode = "401", description = "Token is missing or invalid")
+    })
     @GetMapping("/validate")
     public ResponseEntity<Void> validate(Authentication authentication) {
         if (authentication == null ||
