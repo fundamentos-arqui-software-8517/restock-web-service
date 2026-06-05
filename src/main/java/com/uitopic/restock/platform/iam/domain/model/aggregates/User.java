@@ -4,7 +4,6 @@ import com.uitopic.restock.platform.iam.domain.model.entities.Role;
 import com.uitopic.restock.platform.iam.domain.model.valueobjects.Email;
 import com.uitopic.restock.platform.shared.domain.model.aggregates.AbstractDomainAggregateRoot;
 import com.uitopic.restock.platform.shared.domain.model.valueobjects.AccountId;
-import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;

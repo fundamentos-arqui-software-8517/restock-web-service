@@ -5,7 +5,6 @@ import com.uitopic.restock.platform.iam.infrastructure.authorization.sfs.pipelin
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
-import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -48,7 +47,7 @@ public class WebSecurityConfiguration {
                 .cors(configurer -> configurer.configurationSource(request -> {
                     var cors = new CorsConfiguration();
                     cors.setAllowedOriginPatterns(List.of("*"));
-                    cors.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+                    cors.setAllowedMethods(List.of("GET", "PATCH", "POST", "PUT", "DELETE", "OPTIONS"));
                     cors.setAllowedHeaders(List.of("*"));
                     cors.setExposedHeaders(List.of("Authorization", "Access-Control-Allow-Origin"));
                     cors.setAllowCredentials(true);
