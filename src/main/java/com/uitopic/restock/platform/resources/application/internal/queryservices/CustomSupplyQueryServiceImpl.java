@@ -9,8 +9,8 @@ import com.uitopic.restock.platform.resources.domain.services.CustomSupplyQueryS
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -33,7 +33,7 @@ public class CustomSupplyQueryServiceImpl implements CustomSupplyQueryService {
         log.debug("Querying all custom supplies");
         var results = customSupplyRepository.findAll();
         log.debug("Found {} custom supplies", results.size());
-        return results;
+        return new ArrayList<>(results);
     }
 
     @Override
@@ -42,7 +42,7 @@ public class CustomSupplyQueryServiceImpl implements CustomSupplyQueryService {
         log.debug("Querying custom supplies by accountId='{}'", query.accountId());
         var results = customSupplyRepository.findByAccountId(query.accountId());
         log.debug("Found {} custom supplies for accountId='{}'", results.size(), query.accountId());
-        return results;
+        return new ArrayList<>(results);
     }
 
     @Override
