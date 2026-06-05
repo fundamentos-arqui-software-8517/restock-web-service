@@ -11,10 +11,9 @@ import com.uitopic.restock.platform.iam.domain.model.valueobjects.Email;
 import com.uitopic.restock.platform.iam.domain.model.valueobjects.RoleType;
 import com.uitopic.restock.platform.iam.domain.repositories.UserRepository;
 import com.uitopic.restock.platform.iam.domain.services.UserCommandService;
-import com.uitopic.restock.platform.profiles.interfaces.acl.ProfilesContextFacade;
 import com.uitopic.restock.platform.shared.domain.model.valueobjects.AccountId;
-import org.bson.types.ObjectId;
 import lombok.extern.slf4j.Slf4j;
+import org.bson.types.ObjectId;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -127,9 +126,7 @@ public class UserCommandServiceImpl implements UserCommandService {
             String profileId = externalProfilesService.createProfileForNewUser(
                     saved.getId(),
                     command.businessName(),
-                    command.email(),
-                    command.phone(),
-                    command.country()
+                    command.email()
             );
             log.info("Successfully created profile with ID: '{}' for user ID: {}", profileId, saved.getId());
         } catch (Exception e) {
