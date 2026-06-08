@@ -1,0 +1,70 @@
+server:
+  port: ${PORT:8080}
+
+spring:
+  application:
+    name: restock-web-service
+  data:
+    mongodb:
+      uri: ${SPRING_DATA_MONGODB_URI:mongodb://localhost:27017/restock_db}
+      auto-index-creation: true
+  jackson:
+    default-property-inclusion: non_null
+data:
+  redis:
+    host: ${REDIS_HOST:localhost}
+    port: ${REDIS_PORT:6379}
+    password: ${REDIS_PASSWORD:}
+    timeout: 2000ms
+
+  cache:
+    type: redis
+    redis:
+      time-to-live: 600000
+      cache-null-values: false
+
+# Configuración de JWT
+authorization:
+  jwt:
+    secret: WriteHereYourSecretStringForTokenSigningCredentials
+    expiration:
+      days: 7
+
+# Configuración de Cloudinary
+cloudinary:
+  cloud-name: dplnowmib
+  api-key: 878197382771939
+  api-secret: ggv-8EF1qsNbIiyWQeAKKs2GB38
+
+# Configuración MQTT
+mqtt:
+  enabled: ${MQTT_ENABLED:false}
+  broker-url: ${MQTT_BROKER_URL:tcp://localhost:1883}
+  client-id: restock-web-service
+  username: ${MQTT_USERNAME:""}
+  password: ${MQTT_PASSWORD:""}
+  topics:
+    device-readings: restock/devices/+/readings
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
+    tags-sorter: alpha
+    operations-sorter: alpha
+  servers:
+    - url: https://restock-web-service.onrender.com
+      description: Producción (Render)
+    - url: http://localhost:8080
+      description: Local Development
+
+logging:
+  level:
+    com.restock: DEBUG
+
+documentation:
+  application:
+    description: "@project.description@"
+    version: "@project.version@"

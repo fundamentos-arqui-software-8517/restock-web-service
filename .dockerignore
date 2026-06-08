@@ -1,0 +1,13 @@
+.git
+.gitignore
+.idea
+*.iws
+*.iml
+*.ipr
+target
+*.md
+.env
+*.env.local
+.DS_Store
+Thumbs.db
+mvnw.cmd
