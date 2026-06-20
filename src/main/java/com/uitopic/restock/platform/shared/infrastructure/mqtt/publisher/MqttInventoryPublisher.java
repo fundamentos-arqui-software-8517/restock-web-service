@@ -1,12 +1,14 @@
 package com.uitopic.restock.platform.shared.infrastructure.mqtt.publisher;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.uitopic.restock.platform.devices.domain.model.aggregates.Device;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.paho.client.mqttv3.IMqttClient;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+
+import java.util.Optional;
 
 @Slf4j
 @Component
@@ -18,8 +20,8 @@ public class MqttInventoryPublisher {
     @Value("${mqtt.topic.inventory-updates:restock/inventory/updates}")
     private String inventoryUpdatesTopic;
 
-    public MqttInventoryPublisher(IMqttClient mqttClient, ObjectMapper objectMapper) {
-        this.mqttClient = mqttClient;
+    public MqttInventoryPublisher(Optional<IMqttClient> mqttClientOpt, ObjectMapper objectMapper) {
+        this.mqttClient = mqttClientOpt.orElse(null);
         this.objectMapper = objectMapper;
     }
 

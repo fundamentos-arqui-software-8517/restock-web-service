@@ -1,6 +1,6 @@
 package com.uitopic.restock.platform.devices.infrastructure.mqtt;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.uitopic.restock.platform.devices.domain.model.commands.UpdateDeviceMeasurementCommand;
 import com.uitopic.restock.platform.devices.domain.model.valueobjects.MacAddress;
 import com.uitopic.restock.platform.devices.domain.repositories.DeviceRepository;
@@ -14,6 +14,7 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
+import java.util.Optional;
 
 @Slf4j
 @Component
@@ -29,13 +30,13 @@ public class MqttTelemetrySubscriber implements CommandLineRunner {
     private String telemetryTopic;
 
     public MqttTelemetrySubscriber(
-            IMqttClient mqttClient,
+            Optional<IMqttClient> mqttClientOpt,
             DeviceRepository deviceRepository,
             DeviceCommandService deviceCommandService,
             MqttInventoryPublisher mqttInventoryPublisher,
             ObjectMapper objectMapper
     ) {
-        this.mqttClient = mqttClient;
+        this.mqttClient = mqttClientOpt.orElse(null);
         this.deviceRepository = deviceRepository;
         this.deviceCommandService = deviceCommandService;
         this.mqttInventoryPublisher = mqttInventoryPublisher;
