@@ -85,7 +85,7 @@ public class MqttTelemetrySubscriber implements CommandLineRunner {
                             calibrationDate = device.getWeightMeasurement().calibrationDate() != null 
                                     ? device.getWeightMeasurement().calibrationDate() : LocalDate.now();
                             if (device.getWeightMeasurement().weightUnit() != null) {
-                                unitName = device.getWeightMeasurement().weightUnit().name();
+                                unitName = device.getWeightMeasurement().weightUnit().unitName();
                                 unitAbbr = device.getWeightMeasurement().weightUnit().abbreviation();
                             }
                         }

@@ -67,7 +67,7 @@ public class MqttInventoryPublisher {
                 gross = device.getWeightMeasurement().grossWeight();
                 tare = device.getWeightMeasurement().tareWeight();
                 if (device.getWeightMeasurement().weightUnit() != null) {
-                    unitName = device.getWeightMeasurement().weightUnit().name();
+                    unitName = device.getWeightMeasurement().weightUnit().unitName();
                     unitAbbr = device.getWeightMeasurement().weightUnit().abbreviation();
                 }
             }
