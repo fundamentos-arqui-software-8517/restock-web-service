@@ -24,8 +24,10 @@ class CacheConfigTests {
         var supplies = new ArrayList<>(List.of(customSupply()));
 
         var serialized = mapper.writeValueAsBytes(supplies);
+        var serializedJson = new String(serialized);
         var deserialized = mapper.readValue(serialized, Object.class);
 
+        assertThat(serializedJson).contains(ArrayList.class.getName());
         assertThat(deserialized)
                 .isInstanceOf(List.class)
                 .asList()
@@ -45,8 +47,10 @@ class CacheConfigTests {
         var supplies = new ArrayList<>(List.of(customSupplyResource()));
 
         var serialized = mapper.writeValueAsBytes(supplies);
+        var serializedJson = new String(serialized);
         var deserialized = mapper.readValue(serialized, Object.class);
 
+        assertThat(serializedJson).contains(ArrayList.class.getName());
         assertThat(deserialized)
                 .isInstanceOf(List.class)
                 .asList()
