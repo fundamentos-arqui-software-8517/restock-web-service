@@ -32,16 +32,35 @@ import java.util.Optional;
 
 /**
  * Application service for CustomSupply write operations.
+ * <p>
+ * Handles custom supply creation, update and deletion.
+ * If an image is provided, it is uploaded through the shared ImageService and
+ * stored as an ImageURL value object in the aggregate.
  */
 @Slf4j
 @Service
 public class CustomSupplyCommandServiceImpl implements CustomSupplyCommandService {
 
+    // Using persistence repositories directly in the application service for simplicity.
     private final CustomSupplyRepository customSupplyRepository;
+
+    // SupplyRepository is used to validate that the base supply exists before creating a custom supply.
     private final SupplyRepository supplyRepository;
+
+    // ImageService is used to handle image uploads and deletions for custom supplies.
     private final ImageService imageService;
+
+    // SpringDomainEventPublisher is used to emit events when a custom supply is deleted, so that other parts of the system can react accordingly (e.g., removing references to the deleted custom supply).
     private final SpringDomainEventPublisher eventPublisher;
 
+    /**
+     * Creates a CustomSupplyCommandServiceImpl with the required dependencies.
+     *
+     * @param customSupplyRepository repository used to persist custom supplies
+     * @param supplyRepository repository used to find base supplies
+     * @param imageService service used to upload and delete custom supply images
+     * @param eventPublisher publisher used to emit custom supply events
+     */
     public CustomSupplyCommandServiceImpl(
             CustomSupplyRepository customSupplyRepository,
             SupplyRepository supplyRepository,
@@ -54,6 +73,12 @@ public class CustomSupplyCommandServiceImpl implements CustomSupplyCommandServic
         this.eventPublisher = eventPublisher;
     }
 
+    /**
+     * Creates a new custom supply.
+     *
+     * @param command command with the custom supply data
+     * @return created custom supply
+     */
     @Override
     @Caching(evict = {
             @CacheEvict(value = "custom-supplies-all", allEntries = true),
@@ -87,6 +112,15 @@ public class CustomSupplyCommandServiceImpl implements CustomSupplyCommandServic
         return savedCustomSupply;
     }
 
+    /**
+     * Updates an existing custom supply.
+     *
+     * If a new image is provided, it replaces the previous one. If no image is
+     * provided, the current image is preserved.
+     *
+     * @param command command with the updated custom supply data
+     * @return updated custom supply, or empty if not found
+     */
     @Override
     @Caching(evict = {
             @CacheEvict(value = "custom-supplies-all", allEntries = true),
@@ -132,6 +166,11 @@ public class CustomSupplyCommandServiceImpl implements CustomSupplyCommandServic
         });
     }
 
+    /**
+     * Deletes a custom supply.
+     *
+     * @param command command with the custom supply identifier
+     */
     @Override
     @Caching(evict = {
             @CacheEvict(value = "custom-supplies-all", allEntries = true),
@@ -151,11 +190,24 @@ public class CustomSupplyCommandServiceImpl implements CustomSupplyCommandServic
         log.info("Custom supply deleted successfully: id='{}'", command.customSupplyId());
     }
 
+    /**
+     * Finds a base supply by ID.
+     *
+     * @param supplyId supply identifier
+     * @return found supply
+     */
     private Supply findSupplyOrThrow(String supplyId) {
         return supplyRepository.findById(supplyId)
                 .orElseThrow(() -> new SupplyNotFoundException("Supply not found: " + supplyId));
     }
 
+    /**
+     * Uploads an image if image data is present.
+     *
+     * @param image image bytes
+     * @param photoFileName original file name
+     * @return uploaded image URL value object, or null if no image was provided
+     */
     private ImageURL uploadImageIfPresent(byte[] image, String photoFileName) {
         if (image == null || image.length == 0) {
             return null;
@@ -167,6 +219,7 @@ public class CustomSupplyCommandServiceImpl implements CustomSupplyCommandServic
 
         try {
             var uploadResult = imageService.upload(image, photoFileName);
+
             return new ImageURL(
                     uploadResult.get("url"),
                     uploadResult.get("publicId")
@@ -176,6 +229,11 @@ public class CustomSupplyCommandServiceImpl implements CustomSupplyCommandServic
         }
     }
 
+    /**
+     * Deletes an old image from storage.
+     *
+     * @param publicId image public ID
+     */
     private void deleteOldImage(String publicId) {
         try {
             imageService.delete(publicId);

@@ -2,6 +2,7 @@ package com.uitopic.restock.platform.devices.interfaces.rest.controllers;
 
 import com.uitopic.restock.platform.devices.domain.model.commands.*;
 import com.uitopic.restock.platform.devices.domain.model.queries.*;
+import com.uitopic.restock.platform.devices.domain.model.valueobjects.DisplayMode;
 import com.uitopic.restock.platform.devices.domain.services.DeviceCommandService;
 import com.uitopic.restock.platform.devices.domain.services.DeviceQueryService;
 import com.uitopic.restock.platform.devices.interfaces.rest.resources.*;
@@ -62,7 +63,7 @@ public class DevicesController {
     }
 
     @Operation(summary = "Add technical specifications to a device (onboarding step 2)")
-    @PutMapping(value = "/{deviceId}/specifications", consumes = APPLICATION_JSON_VALUE)
+    @PatchMapping(value = "/{deviceId}/specifications", consumes = APPLICATION_JSON_VALUE)
     public ResponseEntity<DeviceResource> addSpecifications(
             @PathVariable String deviceId,
             @Valid @RequestBody AddDeviceSpecificationsResource resource
@@ -76,7 +77,7 @@ public class DevicesController {
     }
 
     @Operation(summary = "Assign device to a branch (onboarding step 3)")
-    @PutMapping(value = "/{deviceId}/configuration/branch", consumes = APPLICATION_JSON_VALUE)
+    @PatchMapping(value = "/{deviceId}/configuration/branch", consumes = APPLICATION_JSON_VALUE)
     public ResponseEntity<DeviceResource> assignBranch(
             @PathVariable String deviceId,
             @Valid @RequestBody AssignBranchResource resource
@@ -88,7 +89,7 @@ public class DevicesController {
     }
 
     @Operation(summary = "Assign a batch to monitor (onboarding step 4)")
-    @PutMapping(value = "/{deviceId}/configuration/batch", consumes = APPLICATION_JSON_VALUE)
+    @PatchMapping(value = "/{deviceId}/configuration/batch", consumes = APPLICATION_JSON_VALUE)
     public ResponseEntity<DeviceResource> assignBatch(
             @PathVariable String deviceId,
             @Valid @RequestBody AssignBatchResource resource
@@ -100,7 +101,7 @@ public class DevicesController {
     }
 
     @Operation(summary = "Link a supply threshold (onboarding step 5)")
-    @PutMapping(value = "/{deviceId}/configuration/threshold", consumes = APPLICATION_JSON_VALUE)
+    @PatchMapping(value = "/{deviceId}/configuration/threshold", consumes = APPLICATION_JSON_VALUE)
     public ResponseEntity<DeviceResource> assignSupplyThreshold(
             @PathVariable String deviceId,
             @Valid @RequestBody AssignSupplyThresholdResource resource
@@ -112,14 +113,14 @@ public class DevicesController {
     }
 
     @Operation(summary = "Configure weight measurement parameters (onboarding step 6)")
-    @PutMapping(value = "/{deviceId}/configuration/measurement", consumes = APPLICATION_JSON_VALUE)
+    @PatchMapping(value = "/{deviceId}/configuration/measurement", consumes = APPLICATION_JSON_VALUE)
     public ResponseEntity<DeviceResource> updateMeasurement(
             @PathVariable String deviceId,
             @Valid @RequestBody UpdateDeviceMeasurementResource resource
     ) {
         var command = new UpdateDeviceMeasurementCommand(
                 deviceId,
-                resource.netWeight(),
+                resource.unitStockWeight(),
                 resource.tareWeight(),
                 resource.grossWeight(),
                 resource.calibrationDate(),
@@ -131,14 +132,14 @@ public class DevicesController {
         return ResponseEntity.ok(DeviceResourceFromEntityAssembler.toResourceFromEntity(device));
     }
 
-    @Operation(summary = "Transition device status (CONFIGURED: completes onboarding · INACTIVE: deactivates device)")
+    @Operation(summary = "Transition device status (CALIBRATED: completes onboarding · INACTIVE: deactivates device)")
     @PatchMapping(value = "/{deviceId}/status", consumes = APPLICATION_JSON_VALUE)
     public ResponseEntity<DeviceResource> updateStatus(
             @PathVariable String deviceId,
             @Valid @RequestBody UpdateDeviceStatusResource resource
     ) {
         var device = switch (resource.status()) {
-            case "CONFIGURED" -> {
+            case "CALIBRATED" -> {
                 var command = new ConfirmDeviceConfigurationCommand(deviceId);
                 yield deviceCommandService.handle(command)
                         .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Device not found: " + deviceId));
@@ -151,6 +152,18 @@ public class DevicesController {
             default -> throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
                     "Unsupported status transition: " + resource.status());
         };
+        return ResponseEntity.ok(DeviceResourceFromEntityAssembler.toResourceFromEntity(device));
+    }
+
+    @Operation(summary = "Update device display mode")
+    @PatchMapping(value = "/{deviceId}/display-mode", consumes = APPLICATION_JSON_VALUE)
+    public ResponseEntity<DeviceResource> updateDisplayMode(
+            @PathVariable String deviceId,
+            @Valid @RequestBody UpdateDisplayModeResource resource
+    ) {
+        var command = new UpdateDeviceDisplayModeCommand(deviceId, DisplayMode.valueOf(resource.displayMode()));
+        var device = deviceCommandService.handle(command)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Device not found: " + deviceId));
         return ResponseEntity.ok(DeviceResourceFromEntityAssembler.toResourceFromEntity(device));
     }
 

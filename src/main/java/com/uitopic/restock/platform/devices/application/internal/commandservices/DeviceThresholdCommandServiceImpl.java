@@ -4,22 +4,33 @@ import com.uitopic.restock.platform.devices.domain.model.commands.CreateDeviceTh
 import com.uitopic.restock.platform.devices.domain.model.entities.DeviceThreshold;
 import com.uitopic.restock.platform.devices.domain.model.valueobjects.Humidity;
 import com.uitopic.restock.platform.devices.domain.model.valueobjects.Temperature;
+import com.uitopic.restock.platform.devices.domain.repositories.DeviceRepository;
 import com.uitopic.restock.platform.devices.domain.repositories.DeviceThresholdRepository;
 import com.uitopic.restock.platform.devices.domain.services.DeviceThresholdCommandService;
 import com.uitopic.restock.platform.shared.domain.model.valueobjects.AccountId;
+import com.uitopic.restock.platform.shared.domain.model.valueobjects.DeviceId;
+import com.uitopic.restock.platform.shared.infrastructure.eventpublisher.spring.SpringDomainEventPublisher;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jspecify.annotations.NonNull;
 import org.springframework.stereotype.Service;
 
+/**
+ * Implementation of the DeviceThresholdCommandService that handles commands related to device thresholds.
+ */
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class DeviceThresholdCommandServiceImpl implements DeviceThresholdCommandService {
 
+    // Repository for managing device thresholds
     private final DeviceThresholdRepository thresholdRepository;
+    private final DeviceRepository deviceRepository;
+    private final SpringDomainEventPublisher eventPublisher;
 
-    public DeviceThresholdCommandServiceImpl(DeviceThresholdRepository thresholdRepository) {
-        this.thresholdRepository = thresholdRepository;
-    }
-
+    /**
+     * @inheritDocs
+     */
     @Override
     public DeviceThreshold handle(CreateDeviceThresholdCommand command) {
         log.info("Creating device threshold for customSupplyId='{}' and accountId='{}'",
@@ -30,13 +41,40 @@ public class DeviceThresholdCommandServiceImpl implements DeviceThresholdCommand
             temperature = new Temperature(command.minTemperatureCelsius(), command.maxTemperatureCelsius());
         }
 
+        var threshold = getDeviceThreshold(command, temperature);
+        thresholdRepository.findByDeviceId(new DeviceId(command.deviceId()))
+                .ifPresent(existing -> threshold.setId(existing.getId()));
+
+        var saved = thresholdRepository.save(threshold);
+        deviceRepository.findById(command.deviceId()).ifPresent(device -> {
+            device.assignSupplyThreshold(saved.getId());
+            if (device.getAssignedBatchId() != null) {
+                device.confirmConfiguration(saved);
+            }
+            deviceRepository.save(device);
+            device.domainEvents().forEach(eventPublisher::publish);
+            device.clearDomainEvents();
+        });
+        log.info("Device threshold created successfully: id='{}'", saved.getId());
+        return saved;
+    }
+
+    /**
+     * Helper method to create a DeviceThreshold entity from the command and temperature.
+     *
+     * @param command the command containing the threshold details
+     * @param temperature the temperature value object, which may be null if temperature thresholds are not provided
+     * @return a DeviceThreshold entity constructed from the command and temperature
+     */
+    private static @NonNull DeviceThreshold getDeviceThreshold(CreateDeviceThresholdCommand command, Temperature temperature) {
         Humidity humidity = null;
         if (command.minHumidityPercentage() != null && command.maxHumidityPercentage() != null) {
             humidity = new Humidity(command.minHumidityPercentage(), command.maxHumidityPercentage());
         }
 
-        var threshold = new DeviceThreshold(
+        return new DeviceThreshold(
                 new AccountId(command.accountId()),
+                new DeviceId(command.deviceId()),
                 command.customSupplyId(),
                 command.minStock(),
                 command.maxStock(),
@@ -44,9 +82,5 @@ public class DeviceThresholdCommandServiceImpl implements DeviceThresholdCommand
                 temperature,
                 humidity
         );
-
-        var saved = thresholdRepository.save(threshold);
-        log.info("Device threshold created successfully: id='{}'", saved.getId());
-        return saved;
     }
 }

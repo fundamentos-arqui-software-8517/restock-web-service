@@ -35,8 +35,8 @@ public record DeviceResource(
         @Schema(description = "Firmware version currently installed")
         String firmwareVersion,
 
-        @Schema(description = "Net weight (product only, excluding container)")
-        Double netWeight,
+        @Schema(description = "Weight represented by one stock unit")
+        Double unitStockWeight,
 
         @Schema(description = "Tare weight (empty container)")
         Double tareWeight,
@@ -57,6 +57,9 @@ public record DeviceResource(
         Double justifiedWithdrawnStock,
 
         @Schema(description = "Device lifecycle status")
-        String status
+        String status,
+
+        @Schema(description = "Device display mode")
+        String displayMode
 ) {
 }

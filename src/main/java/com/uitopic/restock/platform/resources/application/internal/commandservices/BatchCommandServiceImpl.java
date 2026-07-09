@@ -5,10 +5,7 @@ import com.uitopic.restock.platform.resources.domain.exception.BranchNotFoundExc
 import com.uitopic.restock.platform.resources.domain.exception.CustomSupplyNotFoundException;
 import com.uitopic.restock.platform.resources.domain.model.aggregates.Batch;
 import com.uitopic.restock.platform.resources.domain.model.aggregates.CustomSupply;
-import com.uitopic.restock.platform.resources.domain.model.commands.CreateBatchCommand;
-import com.uitopic.restock.platform.resources.domain.model.commands.DeleteBatchCommand;
-import com.uitopic.restock.platform.resources.domain.model.commands.TransferBatchStockCommand;
-import com.uitopic.restock.platform.resources.domain.model.commands.UpdateBatchCommand;
+import com.uitopic.restock.platform.resources.domain.model.commands.*;
 import com.uitopic.restock.platform.resources.domain.model.events.StockTransferredEvent;
 import com.uitopic.restock.platform.resources.domain.model.valueobjects.Stock;
 import com.uitopic.restock.platform.resources.domain.repositories.BatchRepository;
@@ -102,6 +99,60 @@ public class BatchCommandServiceImpl implements BatchCommandService {
     }
 
     /**
+     * Subtracts or reduces stock from an existing batch.
+     * <p>
+     * Verifies that the batch exists, creates a contextual Stock value object
+     * based on the custom supply's unit measurement, and applies the reduction.
+     *
+     * @param command command with the batch identifier and quantity to subtract
+     * @return the remaining stock level after the subtraction
+     * @throws BatchNotFoundException if the batch does not exist
+     */
+    @Override
+    public double handle(SubtractBatchStockCommand command) {
+        log.info("Subtracting {} from batch id='{}'", command.quantity(), command.batchId());
+
+        Batch batch = batchRepository.findById(command.batchId())
+                .orElseThrow(() -> new BatchNotFoundException("Batch not found: " + command.batchId()));
+
+        CustomSupply customSupply = findCustomSupplyOrThrow(batch.getCustomSupplyId());
+        Stock quantityToSubtract = new Stock(command.quantity(), customSupply.getUnitMeasurement());
+
+        batch.subtract(quantityToSubtract);
+        Batch saved = batchRepository.save(batch);
+
+        log.info("Batch id='{}' stock after subtraction: {}", saved.getId(), saved.getCurrentStock().stock());
+        return saved.getCurrentStock().stock();
+    }
+
+    /**
+     * Adds back or returns stock to an existing batch.
+     * <p>
+     * Verifies that the batch exists, creates a contextual Stock value object
+     * based on the custom supply's unit measurement, and increases the stock.
+     *
+     * @param command command with the batch identifier and quantity to add back
+     * @return updated batch with the restored stock
+     * @throws BatchNotFoundException if the batch does not exist
+     */
+    @Override
+    public Batch handle(AddBackBatchStockCommand command) {
+        log.info("Adding back {} to batch id='{}'", command.quantity(), command.batchId());
+
+        Batch batch = batchRepository.findById(command.batchId())
+                .orElseThrow(() -> new BatchNotFoundException("Batch not found: " + command.batchId()));
+
+        CustomSupply customSupply = findCustomSupplyOrThrow(batch.getCustomSupplyId());
+        Stock quantityToAddBack = new Stock(command.quantity(), customSupply.getUnitMeasurement());
+
+        batch.increase(quantityToAddBack);
+        Batch saved = batchRepository.save(batch);
+
+        log.info("Batch id='{}' stock after add-back: {}", saved.getId(), saved.getCurrentStock().stock());
+        return saved;
+    }
+
+    /**
      * Partially updates an existing batch.
      * <p>
      * Only provided fields are applied. The custom supply, branch and entry date
@@ -126,12 +177,24 @@ public class BatchCommandServiceImpl implements BatchCommandService {
             }
 
             if (command.currentStock() != null) {
+                var previousStock = batch.getCurrentStock().stock();
                 validateStockRange(command.currentStock(), customSupply);
 
                 batch.changeCurrentStock(new Stock(
                         command.currentStock(),
                         customSupply.getUnitMeasurement()
                 ));
+
+                var branch = branchRepository.findById(batch.getBranchId())
+                        .orElseThrow(() -> new BranchNotFoundException(
+                                "Branch not found: " + batch.getBranchId()
+                        ));
+                batch.registerStockAlertIfEscalated(
+                        customSupply.getName(),
+                        branch.getName(),
+                        minimumStockOf(customSupply),
+                        previousStock
+                );
             }
 
             if (command.expirationDate() != null) {
@@ -139,6 +202,8 @@ public class BatchCommandServiceImpl implements BatchCommandService {
             }
 
             Batch updated = batchRepository.save(batch);
+            batch.domainEvents().forEach(eventPublisher::publish);
+            batch.clearDomainEvents();
             log.info("Batch updated successfully: id='{}'", updated.getId());
             return updated;
         });
@@ -193,6 +258,11 @@ public class BatchCommandServiceImpl implements BatchCommandService {
                         "Source batch not found: " + command.sourceBatchId()
                 ));
 
+        var sourceBranch = branchRepository.findById(sourceBatch.getBranchId())
+                .orElseThrow(() -> new BranchNotFoundException(
+                        "Source branch not found: " + sourceBatch.getBranchId()
+                ));
+
         var targetBranch = branchRepository.findById(command.targetBranchId())
                 .orElseThrow(() -> new BranchNotFoundException(
                         "Target branch not found: " + command.targetBranchId()
@@ -223,7 +293,14 @@ public class BatchCommandServiceImpl implements BatchCommandService {
                 })
                 .orElseGet(() -> createTargetBatchFromTransfer(sourceBatch, command, quantity));
 
+        var previousSourceStock = sourceBatch.getCurrentStock().stock();
         sourceBatch.subtract(quantity);
+        sourceBatch.registerStockAlertIfEscalated(
+                customSupply.getName(),
+                sourceBranch.getName(),
+                minimumStockOf(customSupply),
+                previousSourceStock
+        );
 
         // Create a domain event to represent the stock transfer, capturing relevant information about the source and target batches, the quantity transferred, and the remaining stock at both branches after the transfer. This event can be used to notify other parts of the system about the inventory change and trigger any necessary actions or updates.
         var stockTransferredEvent = StockTransferredEvent.builder()
@@ -242,7 +319,7 @@ public class BatchCommandServiceImpl implements BatchCommandService {
         Batch savedTarget = batchRepository.save(targetBatch);
 
         // Publish a domain event after the transfer is successful, allowing other parts of the system to react to the stock change.
-        eventPublisher.publish(stockTransferredEvent);
+        sourceBatch.domainEvents().forEach(eventPublisher::publish);
 
         // Clear domain events after publishing to prevent duplicate events in case of retries or multiple operations on the same batch within the same transaction.
         sourceBatch.clearDomainEvents();
@@ -367,15 +444,25 @@ public class BatchCommandServiceImpl implements BatchCommandService {
             return;
         }
 
-        if (!customSupply.getStockRange().isInRange(currentStock)) {
+        if (currentStock > customSupply.getStockRange().maxStock()) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
-                    "Current stock must be between "
-                            + customSupply.getStockRange().minStock()
-                            + " and "
+                    "Current stock must be less than or equal to "
                             + customSupply.getStockRange().maxStock()
             );
         }
+    }
+
+    /**
+     * Retrieves the minimum stock level from the custom supply's stock range, if defined. This value is used for inventory management and restocking purposes, allowing the system to determine when stock levels are low and trigger appropriate actions, such as sending notifications or generating restock orders.
+     *
+     * @param customSupply custom supply from which to retrieve the minimum stock level
+     * @return minimum stock level if defined, otherwise null
+     */
+    private Double minimumStockOf(CustomSupply customSupply) {
+        return customSupply.getStockRange() != null
+                ? customSupply.getStockRange().minStock()
+                : null;
     }
 
     /**

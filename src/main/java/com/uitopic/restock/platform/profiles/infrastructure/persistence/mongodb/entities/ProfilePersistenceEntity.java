@@ -11,4 +11,13 @@ import org.springframework.data.mongodb.core.mapping.Document;
 @NoArgsConstructor
 @Document(collection = "profiles")
 public class ProfilePersistenceEntity extends AuditableAbstractPersistenceEntity {
+    private String accountId;
+    private String userId;
+    private String name;
+    private String lastName;
+    private String phoneNumber;
+    private String avatarUrl;
+    private String avatarPublicId;
+    private String gender;
+    private String birthDate;
 }

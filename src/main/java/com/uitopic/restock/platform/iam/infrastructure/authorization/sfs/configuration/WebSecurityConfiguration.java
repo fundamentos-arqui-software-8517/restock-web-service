@@ -27,7 +27,7 @@ public class WebSecurityConfiguration {
     private final UnauthorizedRequestHandlerEntryPoint unauthorizedEntryPoint;
 
     public WebSecurityConfiguration(BearerAuthorizationRequestFilter bearerFilter,
-            UnauthorizedRequestHandlerEntryPoint unauthorizedEntryPoint) {
+                                    UnauthorizedRequestHandlerEntryPoint unauthorizedEntryPoint) {
         this.bearerFilter = bearerFilter;
         this.unauthorizedEntryPoint = unauthorizedEntryPoint;
     }
@@ -41,7 +41,7 @@ public class WebSecurityConfiguration {
      * @return the built SecurityFilterChain
      * @throws Exception if an error occurs during building the security filter chain
      */
-    @Bean   
+    @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         return http
                 .cors(configurer -> configurer.configurationSource(request -> {
