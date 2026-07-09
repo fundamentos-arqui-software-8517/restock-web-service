@@ -1,13 +1,7 @@
 .git
-.gitignore
+.github
 .idea
-*.iws
-*.iml
-*.ipr
 target
-*.md
+*.iml
 .env
-*.env.local
-.DS_Store
-Thumbs.db
-mvnw.cmd
+*.log

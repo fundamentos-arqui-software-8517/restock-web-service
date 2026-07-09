@@ -1,6 +1,8 @@
 package com.uitopic.restock.platform.resources.domain.model.aggregates;
 
+import com.uitopic.restock.platform.resources.domain.model.events.InventoryBelowMinimumStockEvent;
 import com.uitopic.restock.platform.resources.domain.model.valueobjects.Stock;
+import com.uitopic.restock.platform.resources.domain.model.valueobjects.StockAlertLevel;
 import com.uitopic.restock.platform.shared.domain.model.aggregates.AbstractDomainAggregateRoot;
 import com.uitopic.restock.platform.shared.domain.model.valueobjects.AccountId;
 import lombok.*;
@@ -114,6 +116,51 @@ public class Batch extends AbstractDomainAggregateRoot<Batch> {
      */
     public void subtract(Stock quantity) {
         this.currentStock = this.currentStock.subtract(quantity);
+    }
+
+    /**
+     * Registers a low-stock domain event when the current stock is below the configured minimum.
+     *
+     * @param branchName branch display name
+     * @param minimumStock configured minimum stock
+     */
+    public void registerBelowMinimumStockEvent(String customSupplyName, String branchName, Double minimumStock, StockAlertLevel alertLevel) {
+        validateText(branchName, "Branch name");
+
+        if (minimumStock == null || alertLevel == null || alertLevel == StockAlertLevel.OK) {
+            return;
+        }
+
+        registerDomainEvent(InventoryBelowMinimumStockEvent.builder()
+                .customSupplyName(customSupplyName)
+                .branchName(branchName)
+                .branchId(this.branchId)
+                .batchCode(this.code)
+                .batchId(this.id)
+                .currentStock(this.currentStock.stock())
+                .minimumStock(minimumStock)
+                .unitMeasurement(this.currentStock.unitMeasurement().unitName())
+                .accountId(this.accountId.getAccountId())
+                .alertLevel(alertLevel)
+                .stockEventType("BELOW MINIMUM STOCK")
+                .build());
+    }
+
+    public void registerStockAlertIfEscalated(String customSupplyName, String branchName, Double minimumStock, Double previousStock) {
+        validateText(branchName, "Branch name");
+
+        if (minimumStock == null || previousStock == null) {
+            return;
+        }
+
+        var previousLevel = StockAlertLevel.from(previousStock, minimumStock);
+        var currentLevel = StockAlertLevel.from(this.currentStock.stock(), minimumStock);
+
+        if (currentLevel == StockAlertLevel.OK || !currentLevel.isMoreSevereThan(previousLevel)) {
+            return;
+        }
+
+        registerBelowMinimumStockEvent(customSupplyName, branchName, minimumStock, currentLevel);
     }
 
     /**

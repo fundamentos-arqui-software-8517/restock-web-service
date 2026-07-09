@@ -26,7 +26,14 @@ public class CollectionInitializer {
             "kits",
             "sales",
             "notifications",
-            "branches"
+            "branches",
+            "discrepancies",
+            "telemetry_readings",
+            "stock_comparison_tasks",
+            "push_subscriptions",
+            "device_thresholds",
+            "profiles",
+            "businesses"
     );
 
     /**
