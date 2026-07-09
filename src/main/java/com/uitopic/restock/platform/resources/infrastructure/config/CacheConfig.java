@@ -11,12 +11,11 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.cache.RedisCacheConfiguration;
 import org.springframework.data.redis.cache.RedisCacheManager;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
+import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.RedisSerializationContext;
 import org.springframework.data.redis.serializer.RedisSerializer;
-import org.springframework.data.redis.serializer.SerializationException;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 
-import java.io.IOException;
 import java.time.Duration;
 
 @Configuration
@@ -41,35 +40,7 @@ public class CacheConfig {
     }
 
     private RedisSerializer<Object> jsonRedisSerializer() {
-        ObjectMapper mapper = redisObjectMapper();
-
-        return new RedisSerializer<>() {
-            @Override
-            public byte[] serialize(Object value) throws SerializationException {
-                if (value == null) {
-                    return new byte[0];
-                }
-
-                try {
-                    return mapper.writeValueAsBytes(value);
-                } catch (IOException exception) {
-                    throw new SerializationException("Could not write JSON to Redis", exception);
-                }
-            }
-
-            @Override
-            public Object deserialize(byte[] bytes) throws SerializationException {
-                if (bytes == null || bytes.length == 0) {
-                    return null;
-                }
-
-                try {
-                    return mapper.readValue(bytes, Object.class);
-                } catch (IOException exception) {
-                    throw new SerializationException("Could not read JSON from Redis", exception);
-                }
-            }
-        };
+        return new GenericJackson2JsonRedisSerializer(redisObjectMapper());
     }
 
     static ObjectMapper redisObjectMapper() {
@@ -80,7 +51,7 @@ public class CacheConfig {
         return JsonMapper.builder()
                 .addModule(new JavaTimeModule())
                 .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
-                .activateDefaultTyping(ptv, ObjectMapper.DefaultTyping.NON_FINAL)
+                .activateDefaultTyping(ptv, ObjectMapper.DefaultTyping.EVERYTHING)
                 .build();
     }
 }

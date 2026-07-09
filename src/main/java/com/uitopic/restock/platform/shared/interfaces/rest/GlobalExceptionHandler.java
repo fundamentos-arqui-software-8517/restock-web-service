@@ -16,6 +16,13 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.server.ResponseStatusException;
+import com.uitopic.restock.platform.planning.domain.exception.IngredientAdditionConflictException;
+import com.uitopic.restock.platform.planning.domain.exception.IngredientNotFoundException;
+import com.uitopic.restock.platform.planning.domain.exception.InvalidProductTypeException;
+import com.uitopic.restock.platform.planning.domain.exception.ProductAlreadyExistsException;
+import com.uitopic.restock.platform.planning.domain.exception.ProductNotFoundException;
+import com.uitopic.restock.platform.resources.domain.exception.CustomSupplyNotFoundException;
+import com.uitopic.restock.platform.sales.domain.exceptions.InsufficientStockException;
 
 import java.time.Instant;
 import java.util.HashMap;
@@ -295,7 +302,71 @@ public class GlobalExceptionHandler {
                 request.getRequestURI()
         ));
     }
+    @ExceptionHandler(ProductNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleProductNotFoundException(
+            ProductNotFoundException ex, HttpServletRequest request) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorBody(
+                HttpStatus.NOT_FOUND, ex.getMessage(), request.getRequestURI()));
+    }
 
+    @ExceptionHandler(CustomSupplyNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleCustomSupplyNotFoundException(
+            CustomSupplyNotFoundException ex, HttpServletRequest request) {
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(errorBody(
+                HttpStatus.UNPROCESSABLE_ENTITY, ex.getMessage(), request.getRequestURI()));
+    }
+
+    /**
+     * Handles insufficient physical stock while completing a sales order.
+     *
+     * @param ex insufficient stock exception
+     * @param request HTTP request
+     * @return structured error response with stock details
+     */
+    @ExceptionHandler(InsufficientStockException.class)
+    public ResponseEntity<Map<String, Object>> handleInsufficientStockException(
+            InsufficientStockException ex, HttpServletRequest request) {
+        Map<String, Object> body = errorBody(
+                HttpStatus.UNPROCESSABLE_ENTITY,
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+
+        body.put("customSupplyId", ex.getCustomSupplyId());
+        body.put("supplyName", ex.getSupplyName());
+        body.put("quantityNeeded", ex.getQuantityNeeded());
+        body.put("quantityAvailable", ex.getQuantityAvailable());
+
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(body);
+    }
+
+    @ExceptionHandler(IngredientAdditionConflictException.class)
+    public ResponseEntity<Map<String, Object>> handleIngredientAdditionConflictException(
+            IngredientAdditionConflictException ex, HttpServletRequest request) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(errorBody(
+                HttpStatus.CONFLICT, ex.getMessage(), request.getRequestURI()));
+    }
+
+    @ExceptionHandler(IngredientNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleIngredientNotFoundException(
+            IngredientNotFoundException ex, HttpServletRequest request) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorBody(
+                HttpStatus.NOT_FOUND, ex.getMessage(), request.getRequestURI()));
+    }
+
+    @ExceptionHandler(InvalidProductTypeException.class)
+    public ResponseEntity<Map<String, Object>> handleInvalidProductTypeException(
+            InvalidProductTypeException ex, HttpServletRequest request) {
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(errorBody(
+                HttpStatus.UNPROCESSABLE_ENTITY, ex.getMessage(), request.getRequestURI()));
+    }
+
+    @ExceptionHandler(ProductAlreadyExistsException.class)
+    public ResponseEntity<Map<String, Object>> handleProductAlreadyExistsException(
+            ProductAlreadyExistsException ex, HttpServletRequest request) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(errorBody(
+                HttpStatus.CONFLICT, ex.getMessage(), request.getRequestURI()));
+    }
     private Map<String, Object> errorBody(HttpStatus status, String message, String path) {
         Map<String, Object> body = new HashMap<>();
 
