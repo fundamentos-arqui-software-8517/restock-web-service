@@ -99,4 +99,12 @@ public class UserDetailsImpl implements UserDetails {
     public boolean isEnabled() {
         return true;
     }
+
+    public String getUserId() {
+        return user.getId();
+    }
+
+    public String getRoleName() {
+        return user.getRole().getType().name();
+    }
 }

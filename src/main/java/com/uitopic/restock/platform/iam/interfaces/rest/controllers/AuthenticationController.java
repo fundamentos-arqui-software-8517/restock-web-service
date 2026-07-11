@@ -16,6 +16,7 @@ import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import com.uitopic.restock.platform.iam.infrastructure.authorization.sfs.model.UserDetailsImpl;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
@@ -108,6 +109,13 @@ public class AuthenticationController {
                 !authentication.isAuthenticated() ||
                 "anonymousUser".equals(authentication.getPrincipal())) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        if (authentication.getPrincipal() instanceof UserDetailsImpl userDetails) {
+            return ResponseEntity.noContent()
+                    .header("X-User-Id", userDetails.getUserId())
+                    .header("X-User-Role", userDetails.getRoleName())
+                    .build();
         }
 
         return ResponseEntity.noContent().build();
