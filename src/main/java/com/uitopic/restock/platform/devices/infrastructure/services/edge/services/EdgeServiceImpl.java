@@ -205,8 +205,8 @@ public class EdgeServiceImpl implements EdgeService {
     ) {
         var body = new HashMap<String, Object>();
         body.put("assigned_batch_id", assignedBatchId);
-        body.put("minimum_stock", minStock);
-        body.put("maximum_stock", maxStock);
+        // Note: minStock/maxStock are not sent here - the edge service's threshold
+        // endpoint has no minimum_stock/maximum_stock fields, it never reads them.
         putIfPresent(body, "minimum_temperature_in_celsius", minTemperatureCelsius);
         putIfPresent(body, "maximum_temperature_in_celsius", maxTemperatureCelsius);
         putIfPresent(body, "minimum_humidity_percentage", minHumidityPercentage);

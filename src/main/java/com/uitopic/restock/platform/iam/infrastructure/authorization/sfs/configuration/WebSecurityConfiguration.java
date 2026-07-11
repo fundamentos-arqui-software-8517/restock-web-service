@@ -63,6 +63,11 @@ public class WebSecurityConfiguration {
                         .requestMatchers(HttpMethod.POST, "/api/v1/auth/sign-up").permitAll()
                         .requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
                         .requestMatchers("/error").permitAll()
+                        // Edge -> Cloud ingestion endpoints: called by the edge service, which has no
+                        // user session/JWT of its own, so these must stay public on the write side.
+                        .requestMatchers(HttpMethod.POST, "/api/v1/telemetries", "/api/v1/tracking/metrics").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/anomalies", "/api/v1/tracking/anomalies").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/devices-health", "/api/v1/devices/status").permitAll()
                         .anyRequest().authenticated())
                 .addFilterBefore(bearerFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
